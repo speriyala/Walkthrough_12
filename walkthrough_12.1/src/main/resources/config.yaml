@@ -1,0 +1,10 @@
+http:
+  port: "8081"
+  
+sfdc:
+  username: "speriyala@open-logix.com"
+  password: "Psmohan@2345"
+  token: "rBSPSR0RL8fiUPFaioClYn8dk"
+  
+file:
+  accountsDir: "c:/Users/ADMIN/Downloads/APDevFundamentals4.4_studentFiles_SP_23nov2022/APDevFundamentals4.4_studentFiles_SP_23nov2022/resources"

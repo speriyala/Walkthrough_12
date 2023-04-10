@@ -1,0 +1,13 @@
+#http listener
+http:
+  port: "8081"
+  
+  
+#db connection 
+
+db:
+  driver: "org.postgresql.Driver"
+  
+
+
+  

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="dbea83e1-44e8-4e9b-aef1-a1f32c100c4c" >
+		<db:generic-connection url="jdbc:postgresql://localhost:5455/postgresDB" driverClassName="org.postgresql.Driver" user="postgres" password="postgres" />
+	</db:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="39f09178-13e1-4439-8ccc-cd8505963bda" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="445e52b3-302d-488b-9a44-583bd844ced9" file="config.yaml" />
+	<flow name="postgressconnectFlow" doc:id="407d4b71-99a4-4ecb-9fcd-4a62385e0c0b" >
+		<http:listener doc:name="Listener" doc:id="c7a6b532-23ad-4bd6-937c-0ff570bb7fbd" config-ref="HTTP_Listener_config" path="/path"/>
+		<set-variable value="#[attributes.queryParams.account_name]" doc:name="accountName" doc:id="eaf4e1a5-5ff3-4df6-bf28-332d99253ac0" variableName="accountName"/>
+		<choice doc:name="Choice" doc:id="d8898e79-6f80-4bb5-b226-8c1da6244e19" >
+			<when expression="#[vars.accountName == 'dql']">
+				<flow-ref doc:name="dqlFlow" doc:id="9548e31e-08f1-494e-9589-36f92680bc76" name="dqlFlow"/>
+			</when>
+			<when expression="#[vars.accountName == 'dml']">
+				<flow-ref doc:name="dmlFlow" doc:id="d94bed6e-c8d0-4c99-9a97-4f09d7f43abf" name="dmlFlow"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="ddlFlow" doc:id="7540d2dd-239f-4919-a7c1-aeedf6e35f0b" name="ddlFlow"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="dqlFlow" doc:id="e2bef186-9951-439d-ba9b-b4ddf93f97a8">
+		<db:select doc:name="Select" doc:id="84b5c19d-4817-4cf4-b523-65f31b3d51de" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from shyamTab]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="070ea882-2772-4d0f-be09-29aac6890565">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="ddlFlow" doc:id="793077ab-ded4-430c-b355-e17030d11089" >
+		<db:execute-ddl doc:name="Execute DDL" doc:id="f1717148-ada6-4be8-8434-72919b6556b4" config-ref="Database_Config">
+			<db:sql ><![CDATA[drop table jithu1]]></db:sql>
+		</db:execute-ddl>
+		<ee:transform doc:name="Transform Message" doc:id="1e31fb6f-4f6f-42a8-8b20-f66a2ec4c755" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "table dropped"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="table dropped" doc:id="777aba41-113c-43c7-8c5f-6831ee3a795e" message="tabledropped"/>
+	</flow>
+	<flow name="dmlFlow" doc:id="dbba69d2-79ef-43c9-b5d3-e616f37033f3" >
+		<http:listener doc:name="Listener" doc:id="32a2d218-4d24-48d3-888f-cb920d984e86" config-ref="HTTP_Listener_config" path="/dml" />
+		<db:insert doc:name="Insert" doc:id="e5d0281a-f9ee-4f55-9687-cc1443bd6bc9" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into jithu values (3,'baba')]]></db:sql>
+		</db:insert>
+		<db:execute-ddl doc:name="commit" doc:id="7522c088-5e0b-43a1-91b7-ee645af770d1" config-ref="Database_Config">
+			<db:sql ><![CDATA[commit]]></db:sql>
+		</db:execute-ddl>
+		<ee:transform doc:name="Transform Message" doc:id="04697033-185f-4304-9be9-06ea2c57449f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message" : "data inserted and commited"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
